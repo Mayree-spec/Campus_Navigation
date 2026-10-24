@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Navigation & Location Finder</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Header Navigation Bar -->
+    <header>
+        <h1>Campus Navigator</h1>
+        <div id="search-container">
+            <input type="text" id="search-input" placeholder="Search building...">
+            <button id="search-btn">Search</button>
+        </div>
+    </header>
+
+    <!-- Map Display Container -->
+    <div id="map"></div>
+
+    <!-- Leaflet JS Library -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Custom Map Script -->
+    <script>
+        // 1. Initialize the map centered on your campus coordinates
+        var map = L.map('map').setView([6.5244, 3.3792], 16);
+
+        // 2. Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 3. Temporary test marker for your sample building
+        var marker = L.marker([6.5244, 3.3792]).addTo(map);
+        marker.bindPopup("<b>Central Library</b><br>Main campus library.").openPopup();
+    </script>
+
+</body>
+</html>
