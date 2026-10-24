@@ -28,20 +28,96 @@
     <!-- Leaflet JS Library -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- Custom Map Script -->
+    <!-- Custom Map And Backend Integration Script -->
     <script>
-        // 1. Initialize the map centered on your campus coordinates
+
+    // Removes spaces and hyphens and lowercases, so "food tech" matches "FOOD-TECH"
+    function normalize(text) {
+        return text.toLowerCase().replace(/[\s-]+/g, '');
+    }
+
+
+       // 1. Initialize the map centered on campus
         var map = L.map('map').setView([6.5244, 3.3792], 16);
 
         // 2. Add OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // 3. Temporary test marker for your sample building
-        var marker = L.marker([6.5244, 3.3792]).addTo(map);
-        marker.bindPopup("<b>Central Library</b><br>Main campus library.").openPopup();
+        // Store all building markers in an array so we can search them later
+        var buildingMarkers = [];
+
+        // 3. Fetch Buildings from PHP Backend and Display Markers
+        fetch('get_buildings.php')
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(building => {
+                    var lat = parseFloat(building.latitude);
+                    var lng = parseFloat(building.longitude);
+
+                    // Create popup content with building details and image placeholder
+                    var popupContent = `
+                        <div style="text-align: center;">
+                            <b>${building.building_name} (${building.acronym})</b><br>
+                            <p style="margin: 5px 0;">${building.description}</p>
+                            <span style="font-size: 0.8rem; color: #555; background: #eee; padding: 2px 6px; border-radius: 4px;">${building.category}</span>
+                        </div>
+                    `;
+
+                    // Drop marker on map
+                    var marker = L.marker([lat, lng]).addTo(map);
+                    marker.bindPopup(popupContent);
+
+                    // Save reference for searching
+                    buildingMarkers.push({
+                        name: building.building_name.toLowerCase(),
+                        acronym: building.acronym ? building.acronym.toLowerCase() : '',
+                        marker: marker,
+                        latlng: [lat, lng]
+                    });
+                });
+            })
+            .catch(error => console.error('Error loading building data:', error));
+
+        // 4. Handle Search Bar Functionality
+        document.getElementById('search-btn').addEventListener('click', function() {
+            let query = document.getElementById('search-input').value.toLowerCase().trim();
+            if (!query) return;
+
+            let found = buildingMarkers.find(b => b.name.includes(query) || b.acronym.includes(query));
+            if (found) {
+                map.setView(found.latlng, 18); // Zoom in on building
+                found.marker.openPopup();
+            } else {
+                alert('Building not found!');
+            }
+        });
+
+        // Allow pressing 'Enter' key to search as well
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('search-btn').click();
+            }
+        });
+
+        // 5. Integrate Browser Geolocation (User GPS Position)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var userLat = position.coords.latitude;
+                var userLng = position.coords.longitude;
+
+                // Add a distinct blue/custom marker for the user's current location
+                var userMarker = L.marker([userLat, userLng], {
+                    title: "Your Location"
+                }).addTo(map);
+
+                userMarker.bindPopup("<b>You are here</b>").openPopup();
+            }, function(error) {
+                console.log("Geolocation access denied or unavailable.");
+            });
+        }
     </script>
 
 </body>
