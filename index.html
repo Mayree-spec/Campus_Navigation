@@ -30,14 +30,12 @@
 
     <!-- Custom Map And Backend Integration Script -->
     <script>
+        // Removes spaces and hyphens and lowercases, so "food tech" matches "FOOD-TECH"
+        function normalize(text) {
+            return text.toLowerCase().replace(/[\s-]+/g, '');
+        }
 
-    // Removes spaces and hyphens and lowercases, so "food tech" matches "FOOD-TECH"
-    function normalize(text) {
-        return text.toLowerCase().replace(/[\s-]+/g, '');
-    }
-
-
-       // 1. Initialize the map centered on campus
+        // 1. Initialize the map centered on campus
         var map = L.map('map').setView([6.5244, 3.3792], 16);
 
         // 2. Add OpenStreetMap tile layer
@@ -46,10 +44,11 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // Store all building markers in an array so we can search them later
         var buildingMarkers = [];
+        var userLatLng = null; // Stores user's real-time GPS position
+        var currentRoutePolyline = null; // Stores active direction line
 
-        // 3. Fetch Buildings from PHP Backend and Display Markers
+        // 3. Fetch Buildings from PHP Backend and Display Markers with Photos
         fetch('get_buildings.php')
             .then(response => response.json())
             .then(data => {
@@ -57,23 +56,24 @@
                     var lat = parseFloat(building.latitude);
                     var lng = parseFloat(building.longitude);
 
-                    // Create popup content with building details and image placeholder
+                    // Create popup content with building image, details, and Get Directions button
                     var popupContent = `
-                        <div style="text-align: center;">
-                            <b>${building.building_name} (${building.acronym})</b><br>
-                            <p style="margin: 5px 0;">${building.description}</p>
-                            <span style="font-size: 0.8rem; color: #555; background: #eee; padding: 2px 6px; border-radius: 4px;">${building.category}</span>
+                        <div style="text-align: center; width: 200px;">
+                            <img src="${building.image_path}" alt="${building.building_name}" style="width: 100%; height: 110px; object-fit: cover; border-radius: 4px; margin-bottom: 5px;" onerror="this.src='https://via.placeholder.com/200x110?text=No+Image'">
+                            <b style="font-size: 0.95rem;">${building.building_name} (${building.acronym})</b><br>
+                            <p style="margin: 4px 0; font-size: 0.85rem; color: #444;">${building.description}</p>
+                            <span style="font-size: 0.75rem; color: #555; background: #eee; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 8px;">${building.category}</span><br>
+                            <button onclick="getDirections(${lat}, ${lng}, '${building.building_name}')" style="background: #27ae60; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; width: 100%;">Get Directions</button>
                         </div>
                     `;
 
-                    // Drop marker on map
                     var marker = L.marker([lat, lng]).addTo(map);
                     marker.bindPopup(popupContent);
 
-                    // Save reference for searching
+                    // Save reference for normalized searching
                     buildingMarkers.push({
-                        name: building.building_name.toLowerCase(),
-                        acronym: building.acronym ? building.acronym.toLowerCase() : '',
+                        name: normalize(building.building_name),
+                        acronym: building.acronym ? normalize(building.acronym) : '',
                         marker: marker,
                         latlng: [lat, lng]
                     });
@@ -81,9 +81,9 @@
             })
             .catch(error => console.error('Error loading building data:', error));
 
-        // 4. Handle Search Bar Functionality
+        // 4. Handle Search Bar Functionality with normalization
         document.getElementById('search-btn').addEventListener('click', function() {
-            let query = document.getElementById('search-input').value.toLowerCase().trim();
+            let query = normalize(document.getElementById('search-input').value);
             if (!query) return;
 
             let found = buildingMarkers.find(b => b.name.includes(query) || b.acronym.includes(query));
@@ -105,11 +105,9 @@
         // 5. Integrate Browser Geolocation (User GPS Position)
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
-                var userLat = position.coords.latitude;
-                var userLng = position.coords.longitude;
+                userLatLng = [position.coords.latitude, position.coords.longitude];
 
-                // Add a distinct blue/custom marker for the user's current location
-                var userMarker = L.marker([userLat, userLng], {
+                var userMarker = L.marker(userLatLng, {
                     title: "Your Location"
                 }).addTo(map);
 
@@ -117,6 +115,32 @@
             }, function(error) {
                 console.log("Geolocation access denied or unavailable.");
             });
+        }
+
+        // 6. Function to Draw Route Polyline from User GPS to Destination
+        function getDirections(destLat, destLng, destName) {
+            if (!userLatLng) {
+                alert("Unable to fetch your current GPS position. Please ensure location permissions are enabled.");
+                return;
+            }
+
+            if (currentRoutePolyline) {
+                map.removeLayer(currentRoutePolyline);
+            }
+
+            var routePoints = [
+                userLatLng,
+                [destLat, destLng]
+            ];
+
+            currentRoutePolyline = L.polyline(routePoints, {
+                color: '#3498db',
+                weight: 5,
+                opacity: 0.8,
+                dashArray: '10, 10'
+            }).addTo(map);
+
+            map.fitBounds(currentRoutePolyline.getBounds(), { padding: [50, 50] });
         }
     </script>
 
