@@ -1,0 +1,96 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body, html {
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Prevents double scrollbars on mobile */
+}
+
+/* Responsive App Header */
+header {
+    height: 60px;
+    background-color: #2c3e50;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 1000;
+}
+
+header h1 {
+    font-size: 1.1rem;
+    white-space: nowrap;
+}
+
+/* Search Container inside Header */
+#search-container {
+    display: flex;
+    gap: 8px;
+}
+
+#search-container input {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    border: none;
+    border-radius: 4px;
+    outline: none;
+    width: 180px;
+}
+
+#search-container button {
+    padding: 6px 12px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+#search-container button:hover {
+    background-color: #2980b9;
+}
+
+/* Map Container scales dynamically to remaining screen height */
+#map {
+    height: calc(100vh - 60px);
+    width: 100%;
+}
+
+/* --- MOBILE RESPONSIVE MEDIA QUERY (Screens 768px and down) --- */
+@media (max-width: 768px) {
+    header {
+        height: auto;
+        min-height: 60px;
+        flex-direction: column;
+        padding: 10px;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    header h1 {
+        font-size: 1rem;
+    }
+
+    #search-container {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #search-container input {
+        width: 70%;
+    }
+
+    /* Adjust map height to account for the taller stacked mobile header */
+    #map {
+        height: calc(100vh - 100px);
+    }
+}
